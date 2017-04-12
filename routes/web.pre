@@ -1,0 +1,17 @@
+<?php
+
+use Aerys\Router;
+use App\Action\ScanAction;
+use App\Socket\FingerprintSocket;
+
+$socket = new FingerprintSocket;
+
+return (Router $router) => {
+  $router->route(
+    "GET", "/scan", new ScanAction($socket)
+  );
+
+  $router->route(
+    "GET", "/ws", Aerys\websocket($socket)
+  );
+};

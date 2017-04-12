@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Socket;
+
+use Aerys\Request;
+use Aerys\Response;
+use Aerys\Websocket;
+use Aerys\Websocket\Endpoint;
+use Aerys\Websocket\Message;
+use Amp\Deferred;
+
+class FingerprintSocket implements Websocket
+{
+  private $endpoint;
+  private $connections = [];
+
+  public function onStart(Endpoint $endpoint)
+  {
+    $this->endpoint = $endpoint;
+  }
+
+  public function onHandshake(Request $request, Response $response)
+  {
+    // $origin = $request->getHeader("origin");
+    //
+    // if ($origin !== "http://127.0.0.1:8080") {
+    //   $response->setStatus(403);
+    //   $response->end("<h1>origin not allowed</h1>");
+    //   return null;
+    // }
+
+    $info = $request->getConnectionInfo();
+
+    return $info["client_addr"];
+  }
+
+  public function onOpen(int $clientId, $address)
+  {
+    $this->connections[$clientId] = $address;
+  }
+
+  private $id = 0;
+  private $promises = [];
+
+  public async function requestScan()
+  {
+    $deferred = new Deferred;
+    $this->promises["_{$this->id}"] = $deferred;
+
+    $body = json_encode([
+      "type" => "scan",
+      "promise" => "_{$this->id}"
+    ]);
+
+    $this->id += 1;
+    $this->endpoint->broadcast($body);
+
+    return $deferred->promise();
+  }
+
+  public function onData(int $clientId, Message $message)
+  {
+    $body = yield $message;
+    $data = json_decode($body);
+
+    $promise = $this->promises[$data->promise];
+
+    if ($data->type === "success") {
+      $promise->resolve($data->data);
+    } else {
+      $promise->fail(
+        new \Exception($data->data->message)
+      );
+    }
+
+    unset($this->promises["_{$this->id}"]);
+
+    // yield $this->endpoint->send(
+    //   $body, $clientId
+    // );
+  }
+
+  public function onClose(int $clientId, int $code, string $reason)
+  {
+    unset($this->connections[$clientId]);
+  }
+
+  public function onStop()
+  {
+    // nothing to see here...
+  }
+}

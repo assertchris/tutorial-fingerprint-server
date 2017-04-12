@@ -1,0 +1,13 @@
+<?php
+
+$port = 8080;
+
+$host = new Aerys\Host();
+$host->expose("*", $port);
+
+$host->use($router = Aerys\router());
+
+$web = process .."/routes/web.pre";
+$web($router);
+
+exec("echo 'http://127.0.0.1:{$port}' | pbcopy");

@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Action;
+
+use Aerys\Request;
+use Aerys\Response;
+use App\Socket\FingerprintSocket;
+
+class ScanAction
+{
+  private $socket;
+
+  public function __construct(FingerprintSocket $socket)
+  {
+    $this->socket = $socket;
+  }
+
+  public function __invoke(Request $request, Response $response)
+  {
+    try {
+      yield $this->socket->requestScan();
+      $response->end("success!");
+    } catch ($e) {
+      $response->end("failure!");
+    }
+  }
+}

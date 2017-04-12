@@ -1,0 +1,8 @@
+.DS_Store
+app/**/*.php
+routes/**/*.php
+node_modules
+vendor
+config.php
+helpers.php
+public/mix-manifest.json
